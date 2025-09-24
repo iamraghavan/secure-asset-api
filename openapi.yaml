@@ -1,0 +1,624 @@
+{
+  "openapi": "3.1.0",
+  "info":
+    {
+      "title": "Secure Asset API",
+      "version": "1.0.0",
+      "summary": "JSON-backed asset registry with GitHub upload.",
+      "description": "A minimal asset registry with JSON storage and optional GitHub-backed uploads.\n**Auth:** Every request must include `x-api-key` with a valid key.",
+    },
+  "servers":
+    [{ "url": "http://localhost:3000", "description": "Local development" }],
+  "tags": [{ "name": "Assets", "description": "Asset registration & lookup" }],
+  "security": [{ "ApiKeyAuth": [] }],
+  "paths":
+    {
+      "/api/v1/assets/register":
+        {
+          "post":
+            {
+              "tags": ["Assets"],
+              "summary": "Register an existing asset (URL/path)",
+              "description": "Registers an asset that already exists at some path/URL.\n- `disk=remote` requires the host to be in the allowlist.\n- If `verify_hash` is provided as text (e.g., \"true\"), the server coerces it to boolean.",
+              "security": [{ "ApiKeyAuth": [] }],
+              "requestBody":
+                {
+                  "required": true,
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RegisterExistingRequest",
+                            },
+                          "examples":
+                            {
+                              "remotePdf":
+                                {
+                                  "summary": "Register remote PDF (jsDelivr)",
+                                  "value":
+                                    {
+                                      "label": "Prospectus 2025",
+                                      "filename": "prospectus-2025.pdf",
+                                      "slug": "prospectus-2025",
+                                      "disk": "remote",
+                                      "path": "https://cdn.jsdelivr.net/gh/egspgoi/assets@main/pdfs/prospectus-2025.pdf",
+                                      "mime": "application/pdf",
+                                      "verify_hash": true,
+                                      "disposition": "inline",
+                                      "visibility": "public",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Registered",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RegisterResponse",
+                                },
+                            },
+                        },
+                    },
+                  "400":
+                    {
+                      "description": "Bad request",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                  "401":
+                    {
+                      "description": "Unauthorized",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                  "422":
+                    {
+                      "description": "Validation error",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ZodErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/assets/github":
+        {
+          "post":
+            {
+              "tags": ["Assets"],
+              "summary": "Upload a file to GitHub and register the asset",
+              "description": "Uploads a file to the configured GitHub repo using the Contents API, then registers it.\nNotes:\n- If `repo_path` has no extension, the server appends one based on the uploaded file.\n- If `branch` is omitted, the server uses the repo's default branch.\n- The target repo must **not be empty** (GitHub Contents API cannot create the first commit).",
+              "security": [{ "ApiKeyAuth": [] }],
+              "requestBody":
+                {
+                  "required": true,
+                  "content":
+                    {
+                      "multipart/form-data":
+                        {
+                          "schema":
+                            { "$ref": "#/components/schemas/UploadGithubForm" },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "Uploaded & registered",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RegisterResponse",
+                                },
+                            },
+                        },
+                    },
+                  "400":
+                    {
+                      "description": "Bad request",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                  "401":
+                    {
+                      "description": "Unauthorized",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                  "422":
+                    {
+                      "description": "Validation error",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ZodErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                  "500":
+                    {
+                      "description": "GitHub error or empty repo",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                              "examples":
+                                {
+                                  "emptyRepo":
+                                    {
+                                      "summary": "Empty repository",
+                                      "value":
+                                        {
+                                          "ok": false,
+                                          "error": "GitHub repo 'egspgoi/assets' is empty. Initialize it with any file (README.md) first.",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/assets/recent":
+        {
+          "get":
+            {
+              "tags": ["Assets"],
+              "summary": "List recent assets",
+              "description": "Returns recent assets with optional filters.",
+              "security": [{ "ApiKeyAuth": [] }],
+              "parameters":
+                [
+                  {
+                    "in": "query",
+                    "name": "label",
+                    "schema": { "type": "string" },
+                    "description": "Filter by label (contains, case-insensitive)",
+                  },
+                  {
+                    "in": "query",
+                    "name": "disk",
+                    "schema":
+                      {
+                        "type": "string",
+                        "enum": ["remote", "local", "s3", "github"],
+                      },
+                  },
+                  {
+                    "in": "query",
+                    "name": "visibility",
+                    "schema": { "type": "string" },
+                    "example": "public",
+                  },
+                  {
+                    "in": "query",
+                    "name": "limit",
+                    "schema":
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "default": 10,
+                      },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RecentAssetsResponse",
+                                },
+                            },
+                        },
+                    },
+                  "401":
+                    {
+                      "description": "Unauthorized",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/assets/{slug}":
+        {
+          "get":
+            {
+              "tags": ["Assets"],
+              "summary": "Resolve asset by slug",
+              "description": "Returns the public URL and asset metadata for the given slug.",
+              "security": [{ "ApiKeyAuth": [] }],
+              "parameters":
+                [
+                  {
+                    "in": "path",
+                    "name": "slug",
+                    "required": true,
+                    "schema": { "type": "string" },
+                    "example": "prospectus-2025",
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ResolveResponse",
+                                },
+                            },
+                        },
+                    },
+                  "401":
+                    {
+                      "description": "Unauthorized",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                            },
+                        },
+                    },
+                  "404":
+                    {
+                      "description": "Not found",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ErrorResponse",
+                                },
+                              "examples":
+                                {
+                                  "notFound":
+                                    {
+                                      "value":
+                                        { "ok": false, "error": "Not found" },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+  "components":
+    {
+      "securitySchemes":
+        {
+          "ApiKeyAuth":
+            { "type": "apiKey", "in": "header", "name": "x-api-key" },
+        },
+      "schemas":
+        {
+          "Asset":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "example": "a1B2c3D4e5F6" },
+                  "label": { "type": "string", "example": "Prospectus 2025" },
+                  "slug": { "type": "string", "example": "prospectus-2025" },
+                  "filename":
+                    { "type": "string", "example": "prospectus-2025.pdf" },
+                  "disk":
+                    {
+                      "type": "string",
+                      "enum": ["remote", "local", "s3", "github"],
+                    },
+                  "path":
+                    {
+                      "type": "string",
+                      "description": "File path or URL (for github, repo path like `pdfs/doc.pdf`)",
+                      "example": "pdfs/prospectus-2025.pdf",
+                    },
+                  "repo":
+                    {
+                      "type": "string",
+                      "description": "owner/repo (when disk=github)",
+                      "example": "egspgoi/assets",
+                    },
+                  "branch": { "type": "string", "example": "main" },
+                  "mime": { "type": "string", "example": "application/pdf" },
+                  "size":
+                    { "type": "integer", "nullable": true, "example": 123456 },
+                  "sha256":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "4d9670e9c2c0b7... (64 hex)",
+                    },
+                  "verify_hash": { "type": "boolean", "example": true },
+                  "disposition":
+                    {
+                      "type": "string",
+                      "enum": ["inline", "attachment"],
+                      "example": "inline",
+                    },
+                  "visibility": { "type": "string", "example": "public" },
+                  "github_url":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "https://github.com/egspgoi/assets/blob/main/pdfs/prospectus-2025.pdf",
+                    },
+                  "cdn_url":
+                    {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "https://cdn.jsdelivr.net/gh/egspgoi/assets@main/pdfs/prospectus-2025.pdf",
+                    },
+                  "created_at":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-09-24T08:10:30.000Z",
+                    },
+                },
+            },
+          "RegisterExistingRequest":
+            {
+              "type": "object",
+              "required": ["label", "disk", "path"],
+              "properties":
+                {
+                  "label": { "type": "string" },
+                  "filename": { "type": "string" },
+                  "slug": { "type": "string" },
+                  "disk":
+                    {
+                      "type": "string",
+                      "enum": ["remote", "local", "s3", "github"],
+                    },
+                  "path":
+                    {
+                      "type": "string",
+                      "description": "Path or full URL when `disk=remote`",
+                      "example": "https://cdn.jsdelivr.net/gh/egspgoi/assets@main/pdfs/prospectus-2025.pdf",
+                    },
+                  "mime": { "type": "string" },
+                  "size": { "type": "integer" },
+                  "sha256":
+                    {
+                      "type": "string",
+                      "description": "64 hex chars",
+                      "minLength": 64,
+                      "maxLength": 64,
+                    },
+                  "verify_hash": { "type": "boolean", "default": false },
+                  "disposition":
+                    {
+                      "type": "string",
+                      "enum": ["inline", "attachment"],
+                      "default": "inline",
+                    },
+                  "visibility": { "type": "string", "default": "public" },
+                },
+            },
+          "UploadGithubForm":
+            {
+              "type": "object",
+              "required": ["file", "label", "repo_path"],
+              "properties":
+                {
+                  "file":
+                    {
+                      "type": "string",
+                      "format": "binary",
+                      "description": "File to upload",
+                    },
+                  "label": { "type": "string" },
+                  "filename":
+                    {
+                      "type": "string",
+                      "description": "Optional; defaults to uploaded file name",
+                    },
+                  "slug": { "type": "string" },
+                  "repo_path":
+                    {
+                      "type": "string",
+                      "description": "Repo-relative path (`assets/pdfs/mydoc.pdf`). If no extension, server appends one.",
+                    },
+                  "branch":
+                    {
+                      "type": "string",
+                      "description": "Optional; server uses repo's default branch if omitted.",
+                    },
+                  "disposition":
+                    {
+                      "type": "string",
+                      "enum": ["inline", "attachment"],
+                      "default": "inline",
+                    },
+                  "visibility": { "type": "string", "default": "public" },
+                  "verify_hash": { "type": "boolean", "default": false },
+                },
+            },
+          "RegisterResponse":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "ok": { "type": "boolean", "example": true },
+                  "asset": { "$ref": "#/components/schemas/Asset" },
+                  "public_url":
+                    {
+                      "type": "string",
+                      "description": "Resolved public URL (jsDelivr for GitHub assets or the remote URL)",
+                      "example": "https://cdn.jsdelivr.net/gh/egspgoi/assets@main/pdfs/prospectus-2025.pdf",
+                    },
+                },
+            },
+          "RecentAssetsResponse":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "ok": { "type": "boolean", "example": true },
+                  "items":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Asset" },
+                    },
+                },
+            },
+          "ResolveResponse":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "ok": { "type": "boolean", "example": true },
+                  "public_url": { "type": "string" },
+                  "asset": { "$ref": "#/components/schemas/Asset" },
+                },
+            },
+          "ErrorResponse":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "ok": { "type": "boolean", "example": false },
+                  "error":
+                    {
+                      "oneOf":
+                        [
+                          { "type": "string" },
+                          { "type": "object", "additionalProperties": true },
+                        ],
+                    },
+                },
+            },
+          "ZodErrorResponse":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "ok": { "type": "boolean", "example": false },
+                  "error":
+                    {
+                      "type": "object",
+                      "properties":
+                        {
+                          "formErrors":
+                            { "type": "array", "items": { "type": "string" } },
+                          "fieldErrors":
+                            {
+                              "type": "object",
+                              "additionalProperties":
+                                {
+                                  "type": "array",
+                                  "items": { "type": "string" },
+                                },
+                            },
+                        },
+                    },
+                },
+              "example":
+                {
+                  "ok": false,
+                  "error":
+                    {
+                      "formErrors": [],
+                      "fieldErrors":
+                        {
+                          "verify_hash":
+                            [
+                              "Invalid input: expected boolean, received string",
+                            ],
+                        },
+                    },
+                },
+            },
+        },
+    },
+}

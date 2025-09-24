@@ -1,0 +1,85 @@
+{
+  "info": {
+    "name": "Secure Asset API v1",
+    "_postman_id": "c6e0e4a1-7b7a-4df1-bec3-asset-kit",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register Existing",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-api-key", "value": "{{APP_KEY}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{BASE}}/api/v1/assets/register",
+          "host": ["{{BASE}}"],
+          "path": ["api", "v1", "assets", "register"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"label\": \"Prospectus 2025\",\n  \"filename\": \"prospectus-2025.pdf\",\n  \"slug\": \"prospectus-2025\",\n  \"disk\": \"remote\",\n  \"path\": \"https://cdn.jsdelivr.net/gh/egspgoi/assets@main/pdfs/prospectus-2025.pdf\",\n  \"mime\": \"application/pdf\",\n  \"verify_hash\": true,\n  \"disposition\": \"inline\",\n  \"visibility\": \"public\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Upload to GitHub + Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "x-api-key", "value": "{{APP_KEY}}" }],
+        "url": {
+          "raw": "{{BASE}}/api/v1/assets/github",
+          "host": ["{{BASE}}"],
+          "path": ["api", "v1", "assets", "github"]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": [] },
+            { "key": "label", "value": "My PDF", "type": "text" },
+            {
+              "key": "repo_path",
+              "value": "assets/pdfs/mypdf.pdf",
+              "type": "text"
+            },
+            { "key": "branch", "value": "main", "type": "text" },
+            { "key": "disposition", "value": "inline", "type": "text" },
+            { "key": "visibility", "value": "public", "type": "text" },
+            { "key": "verify_hash", "value": "true", "type": "text" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Recent Assets",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "{{APP_KEY}}" }],
+        "url": {
+          "raw": "{{BASE}}/api/v1/assets/recent?limit=10",
+          "host": ["{{BASE}}"],
+          "path": ["api", "v1", "assets", "recent"],
+          "query": [{ "key": "limit", "value": "10" }]
+        }
+      }
+    },
+    {
+      "name": "Resolve by Slug",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-api-key", "value": "{{APP_KEY}}" }],
+        "url": {
+          "raw": "{{BASE}}/api/v1/assets/prospectus-2025",
+          "host": ["{{BASE}}"],
+          "path": ["api", "v1", "assets", "prospectus-2025"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "BASE", "value": "http://localhost:3000" },
+    { "key": "APP_KEY", "value": "RjwwqwXd74mAw6gIaMjJzbGgzrluJPiIZQ" }
+  ]
+}

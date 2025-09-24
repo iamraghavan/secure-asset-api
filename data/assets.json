@@ -1,0 +1,23 @@
+{
+  "assets": [
+    {
+      "id": "wpdsEm4fsKB9",
+      "label": "My PDF",
+      "slug": "my-pdf",
+      "filename": "unnamed.jpg",
+      "disk": "github",
+      "path": "test/image/1.jpg",
+      "repo": "egspgoi/jay-vee-groups",
+      "branch": "main",
+      "mime": "image/jpeg",
+      "size": 358569,
+      "sha256": "d633fd2887e1c69b1c688ed71dc70a05ce36e56b773729a6b5bbd88c949266fc",
+      "verify_hash": true,
+      "disposition": "inline",
+      "visibility": "public",
+      "github_url": "https://github.com/egspgoi/jay-vee-groups/blob/main/test/image/1.jpg",
+      "cdn_url": "https://cdn.jsdelivr.net/gh/egspgoi/jay-vee-groups@main/test/image/1.jpg",
+      "created_at": "2025-09-24T03:19:47.172Z"
+    }
+  ]
+}
