@@ -274,13 +274,25 @@ export async function deleteGithubAsset(req, res) {
  * GET /api/v1/assets
  * Return ALL assets (optionally filtered)
  */
+// Basic "get all" (without pagination)
 export async function listAllAssets(req, res) {
   try {
     const { label, disk, visibility } = req.query;
     const items = await getAllAssets({ label, disk, visibility });
     return res.json({ ok: true, items });
-  } catch (err) {
-    console.error(err);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ ok: false, error: 'Failed to load assets' });
+  }
+}
+
+// If you want a richer list with pagination/sort:
+export async function listAssets(req, res) {
+  try {
+    const { items, total } = await listAssetsAdv(req.query || {});
+    return res.json({ ok: true, total, items });
+  } catch (e) {
+    console.error(e);
     return res.status(500).json({ ok: false, error: 'Failed to load assets' });
   }
 }

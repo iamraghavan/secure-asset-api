@@ -8,12 +8,14 @@
     "start": "node src/server.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.15",
     "axios": "^1.12.2",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dayjs": "^1.11.18",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "firebase-admin": "^13.5.0",
     "fs-extra": "^11.3.2",
     "helmet": "^8.1.0",
     "js-yaml": "^4.1.0",
