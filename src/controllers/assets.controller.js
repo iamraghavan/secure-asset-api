@@ -9,6 +9,7 @@ import { extname } from 'path';
 import mime from 'mime-types';
 import { readFileSync, unlinkSync } from 'fs';
 import { deleteFromGitHub } from '../services/github.service.js'; // top of file
+import { getAllAssets } from '../models/asset.model.js';
 
 
 // ---- env / config -----------------------------------------------------------
@@ -266,5 +267,20 @@ export async function deleteGithubAsset(req, res) {
     const ghPayload = e?.response?.data;
     if (ghPayload) return res.status(502).json({ ok: false, error: ghPayload }); // Bad Gateway to reflect upstream error
     return res.status(500).json({ ok: false, error: e?.message || 'GitHub delete failed' });
+  }
+}
+
+/**
+ * GET /api/v1/assets
+ * Return ALL assets (optionally filtered)
+ */
+export async function listAllAssets(req, res) {
+  try {
+    const { label, disk, visibility } = req.query;
+    const items = await getAllAssets({ label, disk, visibility });
+    return res.json({ ok: true, items });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: 'Failed to load assets' });
   }
 }

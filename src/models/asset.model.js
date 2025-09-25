@@ -176,3 +176,13 @@ export async function countAssets(filters = {}) {
   const r = db.prepare(sql).get(...params);
   return r?.cnt || 0;
 }
+
+
+export async function getAllAssets({ label, disk, visibility } = {}) {
+  const db = await loadDB();
+  let list = db.assets;
+  if (label) list = list.filter(a => a.label?.toLowerCase().includes(label.toLowerCase()));
+  if (disk) list = list.filter(a => a.disk === disk);
+  if (visibility) list = list.filter(a => a.visibility === visibility);
+  return list; // no limit applied
+}

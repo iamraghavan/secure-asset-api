@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import apiKey from '../middleware/apiKey.js';
-import { registerExisting, uploadGithubRegister, listRecent, resolveBySlug, deleteGithubAsset } from '../controllers/assets.controller.js';
+import { registerExisting, uploadGithubRegister, listRecent, resolveBySlug, deleteGithubAsset,listAllAssets } from '../controllers/assets.controller.js';
 
 const upload = multer({ dest: 'uploads/' });
 const r = Router();
@@ -20,5 +20,7 @@ r.get('/assets/recent', listRecent);
 // Resolve by slug (handy for frontend)
 r.get('/assets/:slug', resolveBySlug);
 r.delete('/assets/github', deleteGithubAsset); // NEW
+
+r.get('/assets', listAllAssets);
 
 export default r;
