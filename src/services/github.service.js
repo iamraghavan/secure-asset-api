@@ -89,7 +89,7 @@ export function makeCdnUrl({ owner, repo, branch, path }) {
   return `${base}/${owner}/${repo}@${b}/${path}`.replace(/([^:]\/)\/+/g, '$1');
 }
 
-
+// 
 // Delete a file from GitHub repo via Contents API (requires sha).
 export async function deleteFromGitHub({ owner, repo, branch, path, message, committer }) {
   // resolve default branch
