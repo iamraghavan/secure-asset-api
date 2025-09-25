@@ -8,6 +8,8 @@ import { uploadToGitHub, makeCdnUrl } from '../services/github.service.js';
 import { extname } from 'path';
 import mime from 'mime-types';
 import { readFileSync, unlinkSync } from 'fs';
+import { deleteFromGitHub } from '../services/github.service.js'; // top of file
+
 
 // ---- env / config -----------------------------------------------------------
 const ALLOWED_EXT = (process.env.ASSET_ALLOWED_EXT || '')
@@ -222,4 +224,47 @@ export async function resolveBySlug(req, res) {
   const a = await findBySlug(slug);
   if (!a) return res.status(404).json({ ok: false, error: 'Not found' });
   return res.json({ ok: true, public_url: publicUrlFromAsset(a), asset: a });
+}
+
+// DELETE /api/v1/assets/github
+// Body: { repo_path, branch?, message?, owner?, repo? }
+export async function deleteGithubAsset(req, res) {
+  const schema = z.object({
+    owner: z.string().optional(),
+    repo: z.string().optional(),
+    repo_path: z.string().min(1, 'repo_path is required'),
+    branch: z.string().optional(),
+    message: z.string().optional()
+  });
+
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(422).json({ ok: false, error: parsed.error.flatten() });
+  }
+
+  try {
+    const owner = parsed.data.owner || GH_OWNER;
+    const repo  = parsed.data.repo  || GH_REPO;
+    const { repo_path, branch, message } = parsed.data;
+
+    const result = await deleteFromGitHub({
+      owner, repo, branch, path: repo_path, message
+    });
+
+    return res.status(200).json({
+      ok: true,
+      deleted: true,
+      path: result.path,
+      branch: result.branch,
+      commit_sha: result.commit_sha,
+      commit_url: result.commit_url
+    });
+  } catch (e) {
+    if (e?.code === 'FILE_NOT_FOUND') {
+      return res.status(404).json({ ok: false, error: 'File not found in repository' });
+    }
+    const ghPayload = e?.response?.data;
+    if (ghPayload) return res.status(502).json({ ok: false, error: ghPayload }); // Bad Gateway to reflect upstream error
+    return res.status(500).json({ ok: false, error: e?.message || 'GitHub delete failed' });
+  }
 }

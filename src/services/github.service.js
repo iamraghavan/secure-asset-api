@@ -88,3 +88,46 @@ export function makeCdnUrl({ owner, repo, branch, path }) {
   const b = branch || process.env.ASSET_DEFAULT_BRANCH || 'main';
   return `${base}/${owner}/${repo}@${b}/${path}`.replace(/([^:]\/)\/+/g, '$1');
 }
+
+
+// Delete a file from GitHub repo via Contents API (requires sha).
+export async function deleteFromGitHub({ owner, repo, branch, path, message, committer }) {
+  // resolve default branch
+  const info = await getRepoInfo(owner, repo);
+  const targetBranch = branch || info.default_branch;
+
+  // find current blob sha
+  let sha;
+  try {
+    const { data } = await gh.get(
+      `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(targetBranch)}`
+    );
+    sha = data.sha;
+  } catch (e) {
+    if (e?.response?.status === 404) {
+      const err = new Error('File not found in repository');
+      err.code = 'FILE_NOT_FOUND';
+      throw err;
+    }
+    throw e;
+  }
+
+  const payload = {
+    message: message || `chore(asset): delete ${path}`,
+    sha,
+    branch: targetBranch,
+    committer: committer || { name: owner, email: `${owner}@users.noreply.github.com` }
+  };
+
+  const { data } = await gh.delete(
+    `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
+    { data: payload }
+  );
+
+  return {
+    path,
+    branch: targetBranch,
+    commit_sha: data.commit?.sha,
+    commit_url: data.commit?.html_url
+  };
+}
